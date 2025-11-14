@@ -1,6 +1,8 @@
-torch>=2.0.0
+# Core dependencies for coverage environment
 numpy>=1.21.0
-matplotlib>=3.5.0
 networkx>=2.8.0
-scipy>=1.9.0
-tensorboard>=2.11.0
+torch>=2.0.0
+pyyaml>=6.0
+
+# Note: EPyMARL installation handles most dependencies
+# Install EPyMARL first: pip install -e . (from epymarl directory)
