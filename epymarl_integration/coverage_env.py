@@ -227,10 +227,11 @@ class CoverageEnv(MultiAgentEnv):
                 continue
 
             other_pos = self.agent_positions[other_id]
-            dx = (other_pos[0] - pos[0]) / self.grid_size
-            dy = (other_pos[1] - pos[1]) / self.grid_size
+            dx = (other_pos[0] - pos[0]) / self.grid_size  # row_delta
+            dy = (other_pos[1] - pos[1]) / self.grid_size  # col_delta
             dist = np.sqrt(dx**2 + dy**2)
-            angle = np.arctan2(dy, dx)
+            # Corrected: arctan2(row_delta, col_delta) for consistent angle calculation
+            angle = np.arctan2(dx, dy)
 
             obs.extend([dx, dy, dist, angle])
 
@@ -502,7 +503,8 @@ class CoverageEnv(MultiAgentEnv):
         if self._is_valid_position(target, agent_id):
             self.agent_positions[agent_id] = target
             if move != (0, 0):
-                self.agent_orientations[agent_id] = math.atan2(move[1], move[0])
+                # Corrected: atan2(row_delta, col_delta) for proper orientation
+                self.agent_orientations[agent_id] = math.atan2(move[0], move[1])
 
     def _raycast_update(self, agent_id: int):
         """Update coverage using raycasting."""
@@ -635,7 +637,8 @@ class CoverageEnv(MultiAgentEnv):
 
                         if dist < nearest_frontier_dist:
                             nearest_frontier_dist = dist
-                            nearest_frontier_angle = math.atan2(c - pos[1], r - pos[0])
+                            # Corrected: atan2(row_delta, col_delta) for consistent angle calculation
+                            nearest_frontier_angle = math.atan2(r - pos[0], c - pos[1])
 
         return {
             'uncovered_ratio': uncovered / max(total, 1),
