@@ -145,11 +145,17 @@ Run the final cell to download:
 
 ## 🐛 Troubleshooting
 
-### "No module named 'smaclite'" or "No module named 'envs.coverage'"
-→ Re-run cell 2 (Install Dependencies)
-→ Re-run cell 3 (Clone and Setup)
-→ Re-run cell 4 (Install Coverage Environment)
-→ If still failing, restart runtime and run all cells
+### "No module named 'smaclite'" or Import Errors
+
+**Cause:** smaclite is installed by EPyMARL, not available on PyPI
+
+**Solution:**
+1. Make sure cell 3 ran completely (EPyMARL installation)
+2. Restart runtime and run all cells from the beginning
+3. If still failing, manually run:
+   ```python
+   !cd epymarl && pip install -e . && cd ..
+   ```
 
 ### "CUDA out of memory"
 → Change to CPU: `--use_cuda=False` in cell 8
