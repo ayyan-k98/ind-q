@@ -189,7 +189,11 @@ class CoverageEnv(MultiAgentEnv):
                 'coverage': coverage_pct
             }
 
-        return reward, terminated, info
+        # EPyMARL expects 5 values: _, reward, terminated, truncated, info (Gymnasium API)
+        # First value is placeholder (obs retrieved separately via get_obs())
+        # truncated is always False for us (we only use terminated)
+        truncated = False
+        return None, reward, terminated, truncated, info
 
     def get_obs(self):
         """Get observations for all agents."""
