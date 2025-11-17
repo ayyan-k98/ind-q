@@ -17,6 +17,20 @@ This repository provides a cooperative multi-agent coverage task where agents mu
 
 ## Quick Start
 
+### 🌐 Cloud (Google Colab / Kaggle) - Recommended
+
+**Perfect for 4-5 hour training sessions with automatic checkpointing:**
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ayyan-k98/ind-q/blob/main/EPyMARL_Coverage_Colab.ipynb)
+
+Just click the badge above and **Run All** cells!
+
+📖 **[Full Colab Guide](COLAB_QUICKSTART.md)** - Includes resuming, monitoring, troubleshooting
+
+---
+
+### 💻 Local Installation
+
 ### 1. Install EPyMARL
 
 ```bash
@@ -55,7 +69,9 @@ ind-q/
 │   ├── coverage.yaml              # EPyMARL environment config
 │   ├── setup_coverage.py          # Automated installation script
 │   └── envs__init__.py            # Reference for EPyMARL registration
+├── EPyMARL_Coverage_Colab.ipynb   # Colab/Kaggle notebook with checkpointing
 ├── README.md                      # This file
+├── COLAB_QUICKSTART.md            # Colab/Kaggle setup guide
 ├── README_EPYMARL.md             # Detailed EPyMARL usage guide
 ├── IMPLEMENTATION_SUMMARY.md      # Comprehensive implementation details
 ├── ERROR_CHECK_REPORT.md         # Error checking results
