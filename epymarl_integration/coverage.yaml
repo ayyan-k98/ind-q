@@ -9,7 +9,7 @@ env_args:
   n_agents: 4
   grid_size: 20
   episode_limit: 200
-  sensor_range: 5
+  sensor_range: 2  # Reduced from 5 to make task harder (require coordination)
   fov_degrees: 120.0
   coverage_threshold: 0.80
   completion_threshold: 95.0
@@ -17,9 +17,9 @@ env_args:
   map_type: empty  # Options: 'empty', 'rooms', 'random'
   obstacle_density: 0.15  # For random maps
 
-  # Reward scaling
-  reward_scale_coverage: 100.0
-  reward_scale_shaping: 1.0
+  # Reward scaling - Fixed to prevent NaN loss from gradient explosion
+  reward_scale_coverage: 0.5  # Reduced from 100.0 to keep returns in stable range
+  reward_scale_shaping: 0.1   # Reduced from 1.0 to match coverage scale
   reward_frontier_bonus: 0.5
   reward_spread_bonus: 0.1
   reward_stay_penalty: 0.2
