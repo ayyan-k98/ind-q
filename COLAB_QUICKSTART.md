@@ -145,8 +145,11 @@ Run the final cell to download:
 
 ## 🐛 Troubleshooting
 
-### "No module named 'envs.coverage'"
+### "No module named 'smaclite'" or "No module named 'envs.coverage'"
+→ Re-run cell 2 (Install Dependencies)
+→ Re-run cell 3 (Clone and Setup)
 → Re-run cell 4 (Install Coverage Environment)
+→ If still failing, restart runtime and run all cells
 
 ### "CUDA out of memory"
 → Change to CPU: `--use_cuda=False` in cell 8
