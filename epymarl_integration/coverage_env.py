@@ -215,10 +215,12 @@ class CoverageEnv(MultiAgentEnv):
 
         # 2. Sensor Region Info [6]
         sensor_info = self._get_sensor_info(agent_id)
+        # Clip frontier distance to prevent inf values from propagating to network
+        frontier_dist = min(sensor_info['frontier_distance'], self.grid_size * 2)
         obs.extend([
             sensor_info['uncovered_ratio'],
             sensor_info['covered_ratio'],
-            sensor_info['frontier_distance'] / self.grid_size,
+            frontier_dist / self.grid_size,
             np.sin(sensor_info['frontier_angle']),
             np.cos(sensor_info['frontier_angle']),
             sensor_info['coverage_rate']
