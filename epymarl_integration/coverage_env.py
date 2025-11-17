@@ -535,7 +535,8 @@ class CoverageEnv(MultiAgentEnv):
             ray_dist = 0.0
             while ray_dist <= max_range:
                 ray_dist += step_size
-                offset = np.array([math.cos(angle), math.sin(angle)]) * ray_dist
+                # Corrected: [row, col] = [sin, cos] for proper angle-to-grid mapping
+                offset = np.array([math.sin(angle), math.cos(angle)]) * ray_dist
                 ray_pos = center + offset
                 ray_cell = tuple(np.round(ray_pos).astype(int))
 
