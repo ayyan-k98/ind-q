@@ -151,11 +151,11 @@ Run the final cell to download:
 
 **Solution:**
 1. Make sure cell 3 ran completely (EPyMARL installation)
-2. Restart runtime and run all cells from the beginning
-3. If still failing, manually run:
-   ```python
-   !cd epymarl && pip install -e . && cd ..
-   ```
+2. Make sure cell 4 ran completely (includes automatic registration fix)
+3. If still failing, restart runtime and run all cells from the beginning
+
+The notebook now automatically fixes the environment registration in cell 4,
+so this should work without manual intervention.
 
 ### "CUDA out of memory"
 → Change to CPU: `--use_cuda=False` in cell 8
