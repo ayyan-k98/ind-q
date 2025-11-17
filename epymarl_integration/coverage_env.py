@@ -175,19 +175,19 @@ class CoverageEnv(MultiAgentEnv):
         )
 
         # Info dictionary
+        # EPyMARL expects flat numeric values (no nested dicts) for accumulation
         info = {
             **reward_info,
             'coverage_pct': coverage_pct,
             'steps': self.steps,
-            'episode_limit': terminated and self.steps >= self.episode_limit,
+            'episode_limit': int(terminated and self.steps >= self.episode_limit),
         }
 
+        # Add episode stats when terminated (flat format for EPyMARL compatibility)
         if terminated:
-            info['episode'] = {
-                'r': self.cumulative_reward,
-                'l': self.steps,
-                'coverage': coverage_pct
-            }
+            info['episode_return'] = self.cumulative_reward
+            info['episode_length'] = self.steps
+            info['episode_coverage'] = coverage_pct
 
         # EPyMARL expects 5 values: _, reward, terminated, truncated, info (Gymnasium API)
         # First value is placeholder (obs retrieved separately via get_obs())
