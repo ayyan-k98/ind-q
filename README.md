@@ -13,6 +13,7 @@ This repository provides a cooperative multi-agent coverage task where agents mu
 - ✅ Raycasting sensor model with FOV and distance decay
 - ✅ Team reward + shaping for effective QMIX training
 - ✅ Proper conflict resolution and credit assignment
+- ✅ Comprehensive visualization and debugging tools
 - ✅ Comprehensive error checking (0 critical errors)
 
 ## Quick Start
@@ -69,12 +70,14 @@ ind-q/
 │   ├── coverage.yaml              # EPyMARL environment config
 │   ├── setup_coverage.py          # Automated installation script
 │   └── envs__init__.py            # Reference for EPyMARL registration
+├── visualization.py               # Visualization and debugging tools
 ├── EPyMARL_Coverage_Colab.ipynb   # Colab/Kaggle notebook with checkpointing
 ├── README.md                      # This file
 ├── COLAB_QUICKSTART.md            # Colab/Kaggle setup guide
-├── README_EPYMARL.md             # Detailed EPyMARL usage guide
+├── VISUALIZATION_GUIDE.md         # Visualization and debugging guide
+├── README_EPYMARL.md              # Detailed EPyMARL usage guide
 ├── IMPLEMENTATION_SUMMARY.md      # Comprehensive implementation details
-├── ERROR_CHECK_REPORT.md         # Error checking results
+├── ERROR_CHECK_REPORT.md          # Error checking results
 ├── requirements.txt               # Python dependencies
 └── .gitignore                     # Git ignore patterns
 ```
@@ -158,6 +161,36 @@ python src/main.py --config=qmix --env-config=coverage \
 - Random: ~30-40% coverage
 - Greedy (multi-agent): ~60-75% coverage
 - Single-agent greedy: ~70-80% coverage
+
+## Visualization and Debugging
+
+Comprehensive visualization tools for debugging and analysis:
+
+```python
+from visualization import debug_episode, CoverageVisualizer
+from epymarl.src.envs.coverage import CoverageEnv
+
+# Run debug episode with full visualization
+env = CoverageEnv(n_agents=4, grid_size=20)
+stats = debug_episode(env, your_policy, save_dir='debug_output')
+```
+
+**Generates:**
+- 📊 Coverage heatmaps
+- 🗺️ Agent trajectories
+- 📈 Coverage over time graphs
+- 🎯 Sensor FOV visualization
+- 📉 Action distribution analysis
+- 💰 Reward breakdown
+
+**Use cases:**
+- Debug coverage issues
+- Verify sensor logic
+- Analyze coordination
+- Compare policies
+- Visualize trained models
+
+📖 **[Full Visualization Guide](VISUALIZATION_GUIDE.md)** - Complete documentation with examples
 
 ## Documentation
 
