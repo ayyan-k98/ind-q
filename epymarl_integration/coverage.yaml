@@ -5,6 +5,7 @@
 env: coverage
 
 env_args:
+  map_name: "coverage"  # Required by EPyMARL (unused for coverage env)
   n_agents: 4
   grid_size: 20
   episode_limit: 200
