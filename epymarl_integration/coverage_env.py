@@ -10,8 +10,11 @@ import networkx as nx
 import math
 from typing import List, Dict, Tuple, Optional
 
-# Relative import for EPyMARL
-from ..multiagentenv import MultiAgentEnv
+# Import MultiAgentEnv (relative for EPyMARL, absolute for standalone)
+try:
+    from ..multiagentenv import MultiAgentEnv
+except (ImportError, ValueError):
+    from multiagentenv import MultiAgentEnv
 
 
 class CoverageEnv(MultiAgentEnv):
@@ -98,7 +101,8 @@ class CoverageEnv(MultiAgentEnv):
         self.steps = 0
         self.agent_positions = []
         self.agent_orientations = []
-        self.obstacle_grid = None
+        self.obstacle_grid = None  # True obstacle map (ground truth)
+        self.obstacle_belief = None  # Agent's belief: -1=unknown, 0=free, 1=obstacle
         self.coverage_grid = None
         self.world_graph = None
         self.cumulative_reward = 0.0
@@ -123,6 +127,9 @@ class CoverageEnv(MultiAgentEnv):
         self.obstacle_grid = self._generate_map(self.map_type)
         self.coverage_grid = np.zeros((self.grid_size, self.grid_size), dtype=np.float32)
 
+        # Initialize obstacle belief map (POMDP: all cells unknown initially)
+        self.obstacle_belief = np.full((self.grid_size, self.grid_size), -1, dtype=np.int8)
+
         # Build graph of traversable cells
         self._build_world_graph()
 
@@ -132,6 +139,7 @@ class CoverageEnv(MultiAgentEnv):
         # Initial coverage from agent positions
         for agent_id in range(self.n_agents):
             self._raycast_update(agent_id)
+            self._update_obstacle_belief(agent_id)  # Reveal obstacles in initial sensor range
 
         self.previous_coverage_sum = self._calculate_coverage_sum()
 
@@ -159,9 +167,10 @@ class CoverageEnv(MultiAgentEnv):
         for agent_id, move in enumerate(executed_moves):
             self._move_agent(agent_id, move)
 
-        # Update coverage
+        # Update coverage and obstacle beliefs
         for agent_id in range(self.n_agents):
             self._raycast_update(agent_id)
+            self._update_obstacle_belief(agent_id)  # Update belief after each move
 
         # Calculate reward
         reward, reward_info = self._calculate_reward(actions, executed_moves)
@@ -267,12 +276,18 @@ class CoverageEnv(MultiAgentEnv):
         return self.obs_size
 
     def get_state(self):
-        """Get global state for centralized training."""
-        # All agent observations
+        """
+        Get global state for centralized training.
+        POMDP + CTDE: Includes true obstacle map for centralized value function.
+        """
+        # All agent observations (use partial observability via belief)
         all_obs = np.concatenate([self.get_obs_agent(i) for i in range(self.n_agents)])
 
         # Global coverage grid
         coverage_flat = self.coverage_grid.flatten()
+
+        # True obstacle map (for CTDE - centralized training can see true state)
+        obstacle_flat = self.obstacle_grid.flatten()
 
         # Metadata
         metadata = np.array([
@@ -281,15 +296,16 @@ class CoverageEnv(MultiAgentEnv):
             self.n_agents / 10.0,
         ], dtype=np.float32)
 
-        state = np.concatenate([all_obs, coverage_flat, metadata])
+        state = np.concatenate([all_obs, coverage_flat, obstacle_flat, metadata])
         return state.astype(np.float32)
 
     def get_state_size(self):
         """Return state size."""
         all_obs_size = self.obs_size * self.n_agents
         coverage_size = self.grid_size * self.grid_size
+        obstacle_size = self.grid_size * self.grid_size  # True obstacle map for CTDE
         metadata_size = 3
-        return all_obs_size + coverage_size + metadata_size
+        return all_obs_size + coverage_size + obstacle_size + metadata_size
 
     def get_avail_actions(self):
         """Get available actions for all agents."""
@@ -561,6 +577,24 @@ class CoverageEnv(MultiAgentEnv):
                         self.coverage_grid[ray_cell[0], ray_cell[1]] = new_pc
                         self.world_graph.nodes[ray_cell]['pc'] = new_pc
 
+    def _update_obstacle_belief(self, agent_id: int):
+        """
+        Update obstacle belief map based on what agent can see.
+        Reveals obstacles and free cells within sensor range.
+        """
+        pos = self.agent_positions[agent_id]
+
+        # Reveal all cells within sensor range
+        for r in range(max(0, pos[0] - self.sensor_range),
+                      min(self.grid_size, pos[0] + self.sensor_range + 1)):
+            for c in range(max(0, pos[1] - self.sensor_range),
+                          min(self.grid_size, pos[1] + self.sensor_range + 1)):
+                dist = math.sqrt((r - pos[0])**2 + (c - pos[1])**2)
+
+                if dist <= self.sensor_range:
+                    # Reveal the true state of this cell
+                    self.obstacle_belief[r, c] = self.obstacle_grid[r, c]
+
     def _calculate_coverage_sum(self):
         """Calculate sum of coverage probabilities."""
         return float(np.sum(self.coverage_grid[self.obstacle_grid == 0]))
@@ -620,7 +654,11 @@ class CoverageEnv(MultiAgentEnv):
         return total_reward, info
 
     def _get_sensor_info(self, agent_id: int):
-        """Get information about agent's sensor region."""
+        """
+        Get information about agent's sensor region.
+        POMDP: Uses obstacle_belief instead of true obstacle_grid.
+        Only considers cells with known state (belief != -1).
+        """
         pos = self.agent_positions[agent_id]
 
         uncovered = 0
@@ -634,7 +672,8 @@ class CoverageEnv(MultiAgentEnv):
             for c in range(max(0, pos[1] - self.sensor_range), min(self.grid_size, pos[1] + self.sensor_range + 1)):
                 dist = math.sqrt((r - pos[0])**2 + (c - pos[1])**2)
 
-                if dist <= self.sensor_range and self.obstacle_grid[r, c] == 0:
+                # POMDP: Only count cells that are known to be free (belief == 0)
+                if dist <= self.sensor_range and self.obstacle_belief[r, c] == 0:
                     total += 1
 
                     if self.coverage_grid[r, c] >= self.coverage_threshold:
