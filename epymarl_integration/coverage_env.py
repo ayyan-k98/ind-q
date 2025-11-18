@@ -38,8 +38,8 @@ class CoverageEnv(MultiAgentEnv):
         obs_size: int = 64,
         map_type: str = 'empty',
         obstacle_density: float = 0.15,
-        reward_scale_coverage: float = 100.0,
-        reward_scale_shaping: float = 1.0,
+        reward_scale_coverage: float = 0.5,  # Fixed: was 100.0 (caused gradient explosion)
+        reward_scale_shaping: float = 0.1,   # Fixed: was 1.0 (caused gradient explosion)
         reward_frontier_bonus: float = 0.5,
         reward_spread_bonus: float = 0.1,
         reward_stay_penalty: float = 0.2,
