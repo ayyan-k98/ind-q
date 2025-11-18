@@ -1,0 +1,58 @@
+# Coverage Environment - Small Grid (20×20)
+# For training CNN agent
+
+env: coverage
+
+env_args:
+  map_name: "coverage"
+  n_agents: 4
+  grid_size: 20            # Small grid for training
+  episode_limit: 200
+  sensor_range: 2
+  fov_degrees: 120.0
+  coverage_threshold: 0.80
+  completion_threshold: 95.0
+  obs_size: 64
+  map_type: random
+  obstacle_density: 0.15
+
+  # CNN: Use spatial observations
+  use_spatial_obs: True    # IMPORTANT: Enable spatial observations for CNN
+
+  # Reward scaling
+  reward_scale_coverage: 0.5
+  reward_scale_shaping: 0.1
+  reward_frontier_bonus: 0.5
+  reward_spread_bonus: 0.1
+  reward_stay_penalty: 0.2
+  reward_step_penalty: 0.1
+
+  seed: 42
+
+# Training
+t_max: 1000000  # 1M timesteps (faster for testing)
+test_interval: 10000
+test_nepisode: 10
+log_interval: 10000
+runner_log_interval: 10000
+learner_log_interval: 10000
+grad_norm_clip: 10.0
+
+# Model saving
+save_model: True
+save_model_interval: 50000
+
+# Evaluation
+evaluate: True
+evaluation_epsilon: 0.0
+
+# Logging
+use_tensorboard: True
+use_sacred: False
+
+# Runner
+runner: "episode"
+mac: "cnn_mac"  # Use CNN MAC
+
+# Device
+use_cuda: True

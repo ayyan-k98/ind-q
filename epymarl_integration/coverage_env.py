@@ -44,6 +44,7 @@ class CoverageEnv(MultiAgentEnv):
         reward_spread_bonus: float = 0.1,
         reward_stay_penalty: float = 0.2,
         reward_step_penalty: float = 0.1,
+        use_spatial_obs: bool = False,  # CNN: Use spatial observations instead of flat
         seed: Optional[int] = None,
         **kwargs
     ):
@@ -67,6 +68,7 @@ class CoverageEnv(MultiAgentEnv):
             reward_spread_bonus: Bonus for spreading out
             reward_stay_penalty: Penalty for staying still
             reward_step_penalty: Penalty per step
+            use_spatial_obs: Whether to use spatial observations for CNN (default: False for flat obs)
             seed: Random seed
         """
         # Environment parameters
@@ -80,6 +82,7 @@ class CoverageEnv(MultiAgentEnv):
         self.obs_size = obs_size
         self.map_type = map_type
         self.obstacle_density = obstacle_density
+        self.use_spatial_obs = use_spatial_obs
 
         # Reward parameters
         self.reward_scale_coverage = reward_scale_coverage
@@ -206,6 +209,8 @@ class CoverageEnv(MultiAgentEnv):
 
     def get_obs(self):
         """Get observations for all agents."""
+        if self.use_spatial_obs:
+            return [self.get_obs_agent_spatial(i) for i in range(self.n_agents)]
         return [self.get_obs_agent(i) for i in range(self.n_agents)]
 
     def get_obs_agent(self, agent_id: int):
@@ -271,8 +276,109 @@ class CoverageEnv(MultiAgentEnv):
 
         return np.array(obs, dtype=np.float32)
 
+    def get_obs_agent_spatial(self, agent_id: int):
+        """
+        Get spatial observation for CNN agent.
+        Returns dict with 'spatial' grids and 'scalar' features.
+
+        Spatial grids (4 channels × H × W):
+        - coverage_grid: Coverage values [0, 1]
+        - obstacle_belief: Normalized [-1,0,1] → [0,0.5,1]
+        - agent_positions: All agents as gaussian kernels
+        - own_position: This agent's position highlight
+
+        Scalar features (all coordinate normalized):
+        - Orientation, timestep
+        - Other agents' relative positions (normalized by grid_size)
+        - Global statistics
+        """
+        pos = self.agent_positions[agent_id]
+
+        # 1. Spatial grids (4 channels × H × W)
+        spatial = np.stack([
+            self.coverage_grid.copy(),  # [0, 1]
+            self._normalize_belief_grid(),  # [-1,0,1] → [0, 0.5, 1]
+            self._get_agent_position_grid(),  # All agents
+            self._get_own_position_grid(agent_id),  # This agent
+        ], axis=0).astype(np.float32)  # (4, H, W)
+
+        # 2. Scalar features (all coordinate normalized)
+        scalars = []
+
+        # Own orientation (rotation invariant)
+        scalars.extend([
+            np.sin(self.agent_orientations[agent_id]),
+            np.cos(self.agent_orientations[agent_id]),
+        ])
+
+        # Timestep (normalized)
+        scalars.append(self.steps / self.episode_limit)
+
+        # Other agents (coordinate normalized)
+        max_other_agents = 10
+        for other_id in range(self.n_agents):
+            if other_id == agent_id:
+                continue
+
+            other_pos = self.agent_positions[other_id]
+            dx = (other_pos[0] - pos[0]) / self.grid_size  # Normalized
+            dy = (other_pos[1] - pos[1]) / self.grid_size  # Normalized
+            dist = np.sqrt(dx**2 + dy**2)
+            angle = np.arctan2(dx, dy)
+
+            scalars.extend([dx, dy, dist, np.sin(angle), np.cos(angle)])
+
+        # Pad other agents
+        current_others = self.n_agents - 1
+        if current_others < max_other_agents:
+            scalars.extend([0.0] * (5 * (max_other_agents - current_others)))
+
+        # Global statistics (already normalized)
+        scalars.extend([
+            self._calculate_coverage_percentage() / 100.0,
+            self._calculate_coverage_sum() / (self.grid_size * self.grid_size),
+            (self._calculate_coverage_sum() - self.previous_coverage_sum),
+        ])
+
+        return {
+            'spatial': spatial,  # (4, H, W)
+            'scalars': np.array(scalars, dtype=np.float32)  # (~53,)
+        }
+
+    def _normalize_belief_grid(self):
+        """Normalize obstacle belief from [-1,0,1] to [0,0.5,1]."""
+        # -1 (unknown) → 0.0
+        # 0 (free) → 0.5
+        # 1 (obstacle) → 1.0
+        return (self.obstacle_belief.astype(np.float32) + 1.0) / 2.0
+
+    def _get_agent_position_grid(self):
+        """Create grid with all agent positions as gaussian kernels."""
+        grid = np.zeros((self.grid_size, self.grid_size), dtype=np.float32)
+
+        # Add each agent as a gaussian kernel
+        for pos in self.agent_positions:
+            r, c = pos
+            # Simple approach: just mark the position (could use gaussian kernel for smoothness)
+            grid[r, c] = 1.0
+
+        return grid
+
+    def _get_own_position_grid(self, agent_id: int):
+        """Create grid highlighting this agent's position."""
+        grid = np.zeros((self.grid_size, self.grid_size), dtype=np.float32)
+        r, c = self.agent_positions[agent_id]
+        grid[r, c] = 1.0
+        return grid
+
     def get_obs_size(self):
         """Return observation size."""
+        if self.use_spatial_obs:
+            # For CNN: return dict describing spatial + scalar dimensions
+            return {
+                'spatial_shape': (4, self.grid_size, self.grid_size),
+                'scalar_size': 56,  # 2 (orient) + 1 (time) + 10*5 (agents) + 3 (global)
+            }
         return self.obs_size
 
     def get_state(self):

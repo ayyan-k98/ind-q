@@ -1,0 +1,47 @@
+# QMIX with CNN Agent for Coverage Environment
+# Configuration for scale-invariant architecture
+
+# Use CNN-based agent
+mac: "cnn_mac"
+
+# CNN Architecture Parameters
+cnn_hidden_dim: 256          # MLP hidden dimension after CNN
+cnn_channels: [32, 64, 64]   # Convolutional channel sizes
+cnn_pooled_size: [4, 4]      # Adaptive pooling output size (fixed regardless of grid size)
+
+# Standard QMIX Parameters
+mixer: "qmix"
+mixing_embed_dim: 64
+hypernet_layers: 2
+hypernet_embed: 64
+
+# RL Hyperparameters
+gamma: 0.99
+batch_size: 32
+buffer_size: 5000
+lr: 0.0005
+optim_alpha: 0.99
+optim_eps: 0.00001
+
+# Exploration
+epsilon_start: 1.0
+epsilon_finish: 0.05
+epsilon_anneal_time: 50000
+
+# Training
+target_update_interval: 200
+learner_log_interval: 2000
+runner_log_interval: 2000
+
+# Action selection
+action_selector: "epsilon_greedy"
+
+# Observation settings (handled by environment)
+obs_agent_id: False          # Not needed for CNN (agent ID not in spatial obs)
+obs_last_action: False       # Not needed for CNN
+
+# Use CUDA if available
+use_cuda: True
+
+# Checkpoint
+checkpoint_path: ""

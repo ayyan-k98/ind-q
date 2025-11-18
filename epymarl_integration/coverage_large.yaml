@@ -1,0 +1,58 @@
+# Coverage Environment - Large Grid (30×30)
+# For testing scale invariance (zero-shot transfer from 20×20)
+
+env: coverage
+
+env_args:
+  map_name: "coverage"
+  n_agents: 4
+  grid_size: 30            # Large grid for testing
+  episode_limit: 300       # More steps for larger grid
+  sensor_range: 3          # Scaled proportionally (2→3 as 20→30)
+  fov_degrees: 120.0
+  coverage_threshold: 0.80
+  completion_threshold: 95.0
+  obs_size: 64
+  map_type: random
+  obstacle_density: 0.15
+
+  # CNN: Use spatial observations
+  use_spatial_obs: True    # IMPORTANT: Enable spatial observations for CNN
+
+  # Reward scaling (same as small grid)
+  reward_scale_coverage: 0.5
+  reward_scale_shaping: 0.1
+  reward_frontier_bonus: 0.5
+  reward_spread_bonus: 0.1
+  reward_stay_penalty: 0.2
+  reward_step_penalty: 0.1
+
+  seed: 42
+
+# Evaluation only (use checkpoint from 20×20 training)
+t_max: 0  # Don't train, only evaluate
+test_interval: 1
+test_nepisode: 20  # More episodes for robust evaluation
+log_interval: 1000
+runner_log_interval: 1000
+learner_log_interval: 1000
+grad_norm_clip: 10.0
+
+# Model loading
+save_model: False
+load_checkpoint: True  # Will load from --checkpoint_path
+
+# Evaluation
+evaluate: True
+evaluation_epsilon: 0.0  # Greedy policy
+
+# Logging
+use_tensorboard: True
+use_sacred: False
+
+# Runner
+runner: "episode"
+mac: "cnn_mac"  # Use CNN MAC
+
+# Device
+use_cuda: True
