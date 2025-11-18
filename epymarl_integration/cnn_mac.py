@@ -1,13 +1,14 @@
 """
 CNN Multi-Agent Controller (MAC) for EPyMARL
 
-This MAC uses CNN agents instead of RNN agents.
-Compatible with QMIX mixer - operates on Q-values regardless of how they're computed.
+This MAC uses CNN agents with parameter sharing.
+Works with IQL (Independent Q-Learning) - each agent has same network.
+Also compatible with QMIX/VDN if desired (operates on Q-values).
 
 To integrate with EPyMARL:
 1. Copy this file to: epymarl/src/controllers/cnn_mac.py
 2. Register in epymarl/src/controllers/__init__.py
-3. Use with: --config=qmix_cnn
+3. Use with: --config=iql_cnn or --config=qmix_cnn
 """
 
 import torch as th

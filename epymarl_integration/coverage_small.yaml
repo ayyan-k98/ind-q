@@ -1,5 +1,5 @@
 # Coverage Environment - Small Grid (20×20)
-# For training CNN agent
+# For training CNN agent with IQL (Independent Q-Learning)
 
 env: coverage
 
