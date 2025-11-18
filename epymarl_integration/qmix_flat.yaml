@@ -1,0 +1,46 @@
+# QMIX with Flat Observations (Standard RNN)
+# Baseline QMIX for comparison with CNN version
+
+# Use standard MAC
+mac: "basic_mac"
+
+# Agent architecture
+agent: "rnn"
+rnn_hidden_dim: 64
+
+# QMIX Mixer
+mixer: "qmix"
+mixing_embed_dim: 64
+hypernet_layers: 2
+hypernet_embed: 64
+
+# RL Hyperparameters
+gamma: 0.99
+batch_size: 32
+buffer_size: 5000
+lr: 0.0005
+optim_alpha: 0.99
+optim_eps: 0.00001
+
+# Exploration
+epsilon_start: 1.0
+epsilon_finish: 0.05
+epsilon_anneal_time: 50000
+
+# Training
+target_update_interval: 200
+learner_log_interval: 2000
+runner_log_interval: 2000
+
+# Action selection
+action_selector: "epsilon_greedy"
+
+# Observation settings
+obs_agent_id: True
+obs_last_action: True
+
+# Use CUDA if available
+use_cuda: True
+
+# Checkpoint
+checkpoint_path: ""
