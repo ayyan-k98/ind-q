@@ -44,6 +44,7 @@ class CoverageEnv(MultiAgentEnv):
         reward_spread_bonus: float = 0.1,
         reward_stay_penalty: float = 0.2,
         reward_step_penalty: float = 0.1,
+        reward_rotation_penalty: float = 0.05,  # Penalty for direction changes
         use_spatial_obs: bool = False,  # CNN: Use spatial observations instead of flat
         seed: Optional[int] = None,
         **kwargs
@@ -68,6 +69,7 @@ class CoverageEnv(MultiAgentEnv):
             reward_spread_bonus: Bonus for spreading out
             reward_stay_penalty: Penalty for staying still
             reward_step_penalty: Penalty per step
+            reward_rotation_penalty: Penalty for changing direction (encourages smooth movement)
             use_spatial_obs: Whether to use spatial observations for CNN (default: False for flat obs)
             seed: Random seed
         """
@@ -91,6 +93,7 @@ class CoverageEnv(MultiAgentEnv):
         self.reward_spread_bonus = reward_spread_bonus
         self.reward_stay_penalty = reward_stay_penalty
         self.reward_step_penalty = reward_step_penalty
+        self.reward_rotation_penalty = reward_rotation_penalty
 
         # Action space: 9 discrete actions (8 directions + stay)
         self.actions = [
@@ -110,6 +113,7 @@ class CoverageEnv(MultiAgentEnv):
         self.world_graph = None
         self.cumulative_reward = 0.0
         self.previous_coverage_sum = 0.0
+        self.previous_actions = [4] * n_agents  # Track previous actions for rotation penalty (4 = Stay)
 
         # Random seed
         if seed is not None:
@@ -125,6 +129,7 @@ class CoverageEnv(MultiAgentEnv):
         """Reset environment to initial state."""
         self.steps = 0
         self.cumulative_reward = 0.0
+        self.previous_actions = [4] * self.n_agents  # Reset previous actions (4 = Stay)
 
         # Generate map
         self.obstacle_grid = self._generate_map(self.map_type)
@@ -200,6 +205,9 @@ class CoverageEnv(MultiAgentEnv):
             info['episode_return'] = self.cumulative_reward
             info['episode_length'] = self.steps
             info['episode_coverage'] = coverage_pct
+
+        # Store current actions for next step's rotation penalty
+        self.previous_actions = list(actions)
 
         # EPyMARL expects 5 values: _, reward, terminated, truncated, info (Gymnasium API)
         # First value is placeholder (obs retrieved separately via get_obs())
@@ -746,6 +754,10 @@ class CoverageEnv(MultiAgentEnv):
         # Step penalty
         shaping -= self.reward_step_penalty
 
+        # Rotation penalty (encourage smooth movement)
+        rotation_penalty = self._calculate_rotation_penalty(actions)
+        shaping -= rotation_penalty
+
         shaping *= self.reward_scale_shaping
         total_reward = coverage_reward + shaping
         total_reward = np.clip(total_reward, -10.0, 50.0)
@@ -755,9 +767,62 @@ class CoverageEnv(MultiAgentEnv):
             'reward_shaping': shaping,
             'reward_total': total_reward,
             'coverage_increase': coverage_increase,
+            'rotation_penalty': rotation_penalty,  # Track for debugging
         }
 
         return total_reward, info
+
+    def _calculate_rotation_penalty(self, actions: List[int]) -> float:
+        """
+        Calculate penalty for direction changes to encourage smooth movement.
+
+        Args:
+            actions: List of action indices for all agents
+
+        Returns:
+            rotation_penalty: Total penalty (non-negative)
+        """
+        # Action to angle mapping (degrees)
+        action_to_angle = {
+            0: 315,  # NW
+            1: 0,    # N
+            2: 45,   # NE
+            3: 270,  # W
+            4: None, # Stay (no angle)
+            5: 90,   # E
+            6: 225,  # SW
+            7: 180,  # S
+            8: 135,  # SE
+        }
+
+        rotation_penalty = 0.0
+
+        for agent_id in range(self.n_agents):
+            current_action = actions[agent_id]
+            previous_action = self.previous_actions[agent_id]
+
+            # Skip if either is Stay (action 4)
+            if current_action == 4 or previous_action == 4:
+                continue
+
+            # Get angles
+            angle_current = action_to_angle[current_action]
+            angle_previous = action_to_angle[previous_action]
+
+            # Calculate angular difference (handle wrap-around)
+            diff = abs(angle_current - angle_previous)
+            if diff > 180:
+                diff = 360 - diff
+
+            # Normalize to [0, 1] where 1 = 180° turn (complete reversal)
+            normalized_diff = diff / 180.0
+
+            rotation_penalty += normalized_diff
+
+        # Scale by reward parameter
+        rotation_penalty *= self.reward_rotation_penalty
+
+        return rotation_penalty
 
     def _get_sensor_info(self, agent_id: int):
         """

@@ -26,6 +26,7 @@ env_args:
   reward_spread_bonus: 0.1
   reward_stay_penalty: 0.2
   reward_step_penalty: 0.1
+  reward_rotation_penalty: 0.05  # Penalty for direction changes (smooth movement)
 
   seed: 42
 
